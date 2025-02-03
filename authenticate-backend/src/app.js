@@ -36,7 +36,7 @@ app.get('/', (req, res) => {
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: 'http://localhost:3000', // Frontend URL
+  origin: ['https://testing.indiantadka.eu/','http://localhost:3000'],
   credentials: true, // Allows cookies to be sent and received
 }));
 
