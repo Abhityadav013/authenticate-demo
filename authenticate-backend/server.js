@@ -42,6 +42,8 @@ app.use(cookieParser());
 app.use(cors({
   origin: ['https://testing.indiantadka.eu/','http://localhost:3000'],
   credentials: true, // Allows cookies to be sent and received
+  methods: ['GET', 'POST', 'PUT','DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use('/api/v1', authRouter)
@@ -56,3 +58,5 @@ connectDB()
 .catch((err) => {
   console.log("MONGO db connection failed !!! ", err);
 })
+
+export default app;
