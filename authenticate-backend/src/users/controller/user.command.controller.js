@@ -84,9 +84,9 @@ export const login = async (req, res) => {
       await generateAccessAndRefereshTokens(user.id);
 
     const options = {
-      httpOnly: true, // true in production, false in development
+      httpOnly: process.env.NODE_ENV === "production", // true in production, false in development
       secure: process.env.NODE_ENV === "production", // true in production, false in development
-      sameSite: "Strict", // process.env.NODE_ENV === "production" ? "none" : "lax", // 'none' for cross-origin requests
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // process.env.NODE_ENV === "production" ? "none" : "lax", // 'none' for cross-origin requests
       maxAge: 10 * 60 * 1000, // Set to match JWT expiry (10 minutes)
     };
 
