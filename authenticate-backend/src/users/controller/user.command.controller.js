@@ -54,7 +54,7 @@ export const register = async (req, res) => {
     res
       .status(201)
       .cookie("access_token", access_token, options)
-      .json(new ApiResponse(200, {}, "User logged In Successfully"));
+      .json(new ApiResponse(200, {}, "User Registered Successfully"));
   } catch (err) {
     res.status(500).json(new ApiResponse(500, {}, err.message));
   }
