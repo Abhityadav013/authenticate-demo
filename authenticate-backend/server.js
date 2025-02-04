@@ -46,7 +46,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-app.use('/api/v1', authRouter)
+app.use('/api', authRouter)
 
 
 connectDB()
