@@ -55,6 +55,7 @@ app.use("/api-docs", swaggerUi.serve, (req, res) => {
       </html>
     `);
 });
+
 app.get("/api-docs-json", (req, res) => {
   res.json(swaggerDocs); // Ensure the spec is sent as JSON
 });
@@ -67,7 +68,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: ["https://testing.indiantadka.eu/", "http://localhost:3000"],
+    origin: "*",
     credentials: true, // Allows cookies to be sent and received
     methods: ['GET', 'POST', 'PUT','DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
