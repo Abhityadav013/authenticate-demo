@@ -83,25 +83,15 @@ export const login = async (req, res) => {
     const { access_token, refresh_token } =
       await generateAccessAndRefereshTokens(user.id);
 
-    const options = {
-      httpOnly: process.env.NODE_ENV === "production", // true in production, false in development
-      secure: process.env.NODE_ENV === "production", // true in production, false in development
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // process.env.NODE_ENV === "production" ? "none" : "lax", // 'none' for cross-origin requests
-      maxAge: 1 * 60 * 1000, // Set to match JWT expiry (10 minutes)
-    };
-
-    const refresh_token_option = {
-      httpOnly: process.env.NODE_ENV === "production", // true in production
-      secure: process.env.NODE_ENV === "production", // true in production
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // 'none' for cross-origin requests
-      maxAge: 30 * 24 * 60 * 60 * 1000, // Expires in 30 days for refresh token
-    };
-
     return res
       .status(200)
-      .cookie("access_token", access_token, options)
-      .cookie("refresh_token", refresh_token, refresh_token_option)
-      .json(new ApiResponse(200, {}, "User logged In Successfully"));
+      .json(
+        new ApiResponse(
+          200,
+          { access_token, refresh_token },
+          "User logged In Successfully"
+        )
+      );
   } catch (err) {
     return res.status(500).json(new ApiResponse(500, {}, err.message));
   }
