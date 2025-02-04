@@ -10,8 +10,5 @@
       "src": "/(.*)",
       "dest": "/server.js"
     }
-  ],
-  "includeFiles": [
-    "src/users/routes/*.js"
   ]
 }

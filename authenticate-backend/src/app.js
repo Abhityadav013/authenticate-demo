@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 import swaggerJSDoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import authRouter from "./users/routes/auth.route.js";
-import path from 'path'
+import path from "path";
 
 const app = express();
 
@@ -18,7 +18,9 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: `https://authenticate-demo.vercel.app/api/v1`,
+       url: process.env.NODE_ENV === "production"
+          ? `https://authenticate-demo.vercel.app`
+          : `http://localhost:${process.env.PORT || 5000}`, // Local dev URL
       },
     ],
   },
@@ -29,7 +31,7 @@ const swaggerDocs = swaggerJSDoc(swaggerOptions);
 
 // Use Swagger UI middleware
 app.use("/api-docs", swaggerUi.serve, (req, res) => {
-    res.send(`
+  res.send(`
       <!DOCTYPE html>
       <html lang="en">
       <head>
@@ -52,24 +54,24 @@ app.use("/api-docs", swaggerUi.serve, (req, res) => {
       </body>
       </html>
     `);
-  });
+});
+app.get("/api-docs-json", (req, res) => {
+  res.json(swaggerDocs); // Ensure the spec is sent as JSON
+});
 
-  app.get("/api-docs-json", (req, res) => {
-    res.setHeader("Content-Type", "application/json");
-    res.send(swaggerDocs);
-  });
-
-app.get('/', (req, res) => {
-  res.redirect('/api-docs'); // Redirect to Swagger UI
+app.get("/", (req, res) => {
+  res.redirect("/api-docs"); // Redirect to Swagger UI
 });
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: ['https://testing.indiantadka.eu/','http://localhost:3000'],
-  credentials: true, // Allows cookies to be sent and received
-}));
+app.use(
+  cors({
+    origin: ["https://testing.indiantadka.eu/", "http://localhost:3000"],
+    credentials: true, // Allows cookies to be sent and received
+  })
+);
 
-app.use('/api/v1', authRouter)
+app.use("/api/v1", authRouter);
 
-export default app
+export default app;
