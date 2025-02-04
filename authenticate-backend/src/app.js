@@ -17,7 +17,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: `http://localhost:${process.env.PORT || 5000}`|| 'https://authenticate-demo.vercel.app/api/v1',
+        url: `https://authenticate-demo.vercel.app/api/v1`,
       },
     ],
   },
@@ -27,7 +27,35 @@ const swaggerOptions = {
 const swaggerDocs = swaggerJSDoc(swaggerOptions);
 
 // Use Swagger UI middleware
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+app.use("/api-docs", swaggerUi.serve, (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Swagger UI</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.1.0/swagger-ui.min.css">
+      </head>
+      <body>
+        <div id="swagger-ui"></div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.1.0/swagger-ui-bundle.min.js"></script>
+        <script>
+          window.onload = function() {
+            SwaggerUIBundle({
+              url: "/api-docs-json",
+              dom_id: "#swagger-ui"
+            });
+          }
+        </script>
+      </body>
+      </html>
+    `);
+  });
+
+app.get("/api-docs-json", (req, res) => {
+    res.json(swaggerDocs);
+  });
 
 app.get('/', (req, res) => {
   res.redirect('/api-docs'); // Redirect to Swagger UI
