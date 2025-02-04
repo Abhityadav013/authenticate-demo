@@ -1,15 +1,15 @@
 {
   "name": "authenticate-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "type": "module",
   "engines": {
     "node": "22.x"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js",
-    "server": "nodemon index.js"
+    "start": "node server.js",
+    "server": "nodemon server.js"
   },
   "author": "",
   "license": "ISC",
