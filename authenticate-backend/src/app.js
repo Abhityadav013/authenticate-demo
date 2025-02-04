@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import swaggerJSDoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import authRouter from "./users/routes/auth.route.js";
+import path from 'path'
 
 const app = express();
 
@@ -21,7 +22,7 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ["./src/users/routes/*.js"], // path to your API routes (adjust as necessary)
+  apis: [path.resolve("src/users/routes/*.js")], // path to your API routes (adjust as necessary)
 };
 
 const swaggerDocs = swaggerJSDoc(swaggerOptions);
@@ -53,8 +54,9 @@ app.use("/api-docs", swaggerUi.serve, (req, res) => {
     `);
   });
 
-app.get("/api-docs-json", (req, res) => {
-    res.json(swaggerDocs);
+  app.get("/api-docs-json", (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.send(swaggerDocs);
   });
 
 app.get('/', (req, res) => {
