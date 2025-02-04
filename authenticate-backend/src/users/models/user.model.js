@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 
-const userSchema = new mongoose.Schema(
+export const UserSchemaName = 'Users'; // Collection name
+
+const UserSchema = new mongoose.Schema(
   {
     id: {
       type: String,
@@ -16,13 +18,15 @@ const userSchema = new mongoose.Schema(
     isAccountVerified: { type: Boolean, default: false },
     resetOtp: { type: String, default: "" },
     resetOtpExpireAt: { type: Number, default: 0 },
-    refreshToken:{type:String,default:""}
+    refreshToken: { type: String, default: "" },
   },
   {
     versionKey: false,
+    collection: UserSchemaName, // Correctly reference UserSchemaName here
   }
 );
 
-const User = mongoose.model("User", userSchema);
+// Model name is 'User', but the collection will be 'Users'
+const User = mongoose.model("User", UserSchema); 
 
 export default User;
