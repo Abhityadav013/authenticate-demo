@@ -87,7 +87,7 @@ export const login = async (req, res) => {
       httpOnly: process.env.NODE_ENV === "production", // true in production, false in development
       secure: process.env.NODE_ENV === "production", // true in production, false in development
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // process.env.NODE_ENV === "production" ? "none" : "lax", // 'none' for cross-origin requests
-      maxAge: 10 * 60 * 1000, // Set to match JWT expiry (10 minutes)
+      maxAge: 1 * 60 * 1000, // Set to match JWT expiry (10 minutes)
     };
 
     const refresh_token_option = {
