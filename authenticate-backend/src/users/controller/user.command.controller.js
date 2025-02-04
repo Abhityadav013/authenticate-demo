@@ -110,9 +110,9 @@ export const login = async (req, res) => {
 export const logout = async (req, res) => {
   try {
     const options = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Make sure it's secure in production
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      httpOnly: process.env.NODE_ENV === "production", // true in production
+      secure: process.env.NODE_ENV === "production", // true in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // 'none' for cross-origin requests
     };
 
     return res
