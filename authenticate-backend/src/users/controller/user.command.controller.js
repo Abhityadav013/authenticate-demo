@@ -7,6 +7,7 @@ import generateAccessAndRefereshTokens from "../../utils/tokens.js";
 import transporter from "../../config/nodemailer.js";
 import moment from "moment/moment.js";
 import { OAuth2Client } from "google-auth-library";
+import { verifyAccountEmail } from "../../utils/emails/accountVerification.js";
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const register = async (req, res) => {
@@ -116,23 +117,23 @@ export const logout = async (req, res) => {
 };
 
 export const refreshToken = async (req, res) => {
-  const refresh_token = req.cookies.refresh_token;
+  const { refresToken } = req.body;
 
-  if (!refresh_token) {
+  if (!refresToken) {
     return res
       .status(401)
       .json(new ApiResponse(401, {}, "No refresh token provided"));
   }
 
   try {
-    const decoded = jwt.verify(refresh_token, process.env.REFRESH_TOKEN_SECRET);
+    const decoded = jwt.verify(refresToken, process.env.REFRESH_TOKEN_SECRET);
     const user = await User.findOne({ id: decoded.id });
 
     if (!user) {
       return res.status(403).json(new ApiResponse(403, {}, "User not found"));
     }
 
-    const isMatch = await bcrypt.compare(refresh_token, user.refreshToken);
+    const isMatch = await bcrypt.compare(refresToken, user.refreshToken);
     if (!isMatch) {
       return res
         .status(403)
@@ -140,23 +141,19 @@ export const refreshToken = async (req, res) => {
     }
 
     // Rename the destructured variable here
-    const { access_token, refresh_token: new_refresh_token } =
-      await generateAccessAndRefereshTokens(decoded.id);
+    const { access_token } = await generateAccessAndRefereshTokens(decoded.id);
+ 
 
+    const options = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Make sure it's secure in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      maxAge: 10 * 60 * 1000, // Set to match JWT expiry (10 minutes)
+    };
+    
     return res
       .status(200)
-      .cookie("access_token", access_token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 30 * 1000, // 10 minutes
-      })
-      .cookie("refresh_token", new_refresh_token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      })
+      .cookie("access_token", access_token, options)
       .json(new ApiResponse(200, {}, "Access token refreshed successfully"));
   } catch (err) {
     return res
@@ -179,7 +176,7 @@ export const sendVerifyOtp = async (req, res) => {
 
     const otpHash = await bcrypt.hash(otp, 10); // hashing the OTP before saving
     user.verifyOtp = otpHash;
-    user.verifyOtpExpireAt = Date.now() + 5 * 60 * 1000;
+    user.verifyOtpExpireAt = Date.now() + 2 * 60 * 1000;
 
     await user.save();
 
@@ -188,27 +185,30 @@ export const sendVerifyOtp = async (req, res) => {
       to: user.email,
       subject: "Account Verification OTP",
       text: `Your OTP is ${otp}. Verify your account using this OTP.`,
+      html: verifyAccountEmail(otp),
     };
 
     await transporter.sendMail(mailOptions);
 
     return res
       .status(200)
-      .json(new ApiResponse(200, {}, "Verification OTP sent successfully"));
+      .json(new ApiResponse(200, {otpExpiresAt:user.verifyOtpExpireAt}, "Verification OTP sent successfully"));
   } catch (err) {
     return res.status(404).json(new ApiResponse(404, {}, err.message));
   }
 };
 
 export const verifyEmail = async (req, res) => {
-  const { userId, otp } = req.body;
+  const { otp } = req.body;
+ const token  = req.header("Authorization")?.replace("Bearer ", "");
+ const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-  if (!userId || !otp) {
+  if (!decoded.id || !otp) {
     return res.status(404).json(new ApiResponse(404, {}, "Missing Details"));
   }
 
   try {
-    const user = await User.findOne({ id: userId });
+    const user = await User.findOne({ id: decoded.id });
     if (!user) {
       return res.status(404).json(new ApiResponse(404, {}, "User not found"));
     }
@@ -229,7 +229,7 @@ export const verifyEmail = async (req, res) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, {}, "Email Verified Succesfully"));
+      .json(new ApiResponse(200, {isAccountVerified: user.isAccountVerified}, "Email Verified Succesfully"));
   } catch (err) {
     return res.status(404).json(new ApiResponse(404, {}, err.message));
   }

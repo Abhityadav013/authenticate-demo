@@ -97,8 +97,8 @@ authRouter.post("/logout", logout);
 authRouter.get("/profile", verifyJWT, async (req, res) => {
   try {
     const user = await User.findOne({ id: req.user.id }).select(
-      "-password -verifyOtp -verifyOtpExpireAt -isAccountVerified -resetOtp -resetOtpExpireAt -refreshToken -_id"
-    ); // Get user data without password
+      "name isAccountVerified -_id" // Include required fields, exclude _id
+    );
 
     if (!user) {
       return res.status(404).json(new ApiResponse(404, {}, "User not found"));
