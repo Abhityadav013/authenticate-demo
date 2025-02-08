@@ -80,7 +80,6 @@ export const register = async (req, res) => {
 
     await user.save();
 
-
     const mailOptions = {
       from: process.env.SENDER_EMAIL,
       to: user.email,
@@ -146,21 +145,11 @@ export const login = async (req, res) => {
       maxAge: 5 * 24 * 60 * 60 * 1000, // Set to match JWT expiry (10 minutes)
     };
 
-    res
-      .status(201)
+    return res
+      .status(200)
       .cookie("access_token", access_token, options)
       .cookie("refresh_token", refresh_token, refreshTokenOptions)
       .json(new ApiResponse(200, {}, "User logged In Successfully"));
-
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          {},
-          "User logged In Successfully"
-        )
-      );
   } catch (err) {
     return res.status(500).json(new ApiResponse(500, {}, err.message));
   }
@@ -186,9 +175,9 @@ export const logout = async (req, res) => {
 
 export const refreshToken = async (req, res) => {
   const refresToken =
-      req.cookies?.refresh_token ||
-      req.header("Authorization")?.replace("Bearer ", "");
- // const { refresToken } = req.body;
+    req.cookies?.refresh_token ||
+    req.header("Authorization")?.replace("Bearer ", "");
+  // const { refresToken } = req.body;
 
   if (!refresToken) {
     return res
