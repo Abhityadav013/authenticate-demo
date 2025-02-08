@@ -14,7 +14,9 @@ export const register = async (req, res) => {
   const { name, email, password, phoneNumber, confirmPassword } = req.body;
 
   if (!name || !email || !password || !phoneNumber || !confirmPassword) {
-    return res.status(400).json(new ApiResponse(400, {}, "All fields are required."));
+    return res
+      .status(400)
+      .json(new ApiResponse(400, {}, "All fields are required."));
   }
 
   if (!validator.isEmail(email)) {
@@ -23,16 +25,34 @@ export const register = async (req, res) => {
       .json(new ApiResponse(400, {}, "Invalid email format."));
   }
 
-  if (!validator.isMobilePhone(phoneNumber, "any")) { // "any" allows all country formats
-    return res.status(400).json(new ApiResponse(400, {}, "Invalid phone number."));
+  if (!validator.isMobilePhone(phoneNumber, "any")) {
+    // "any" allows all country formats
+    return res
+      .status(400)
+      .json(new ApiResponse(400, {}, "Invalid phone number."));
   }
 
-  if (password.length < 6 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*]/.test(password)) {
-    return res.status(400).json(new ApiResponse(400, {}, "Password must be at least 6 characters long and include an uppercase letter, a number, and a special character."));
+  if (
+    password.length < 6 ||
+    !/[A-Z]/.test(password) ||
+    !/[0-9]/.test(password) ||
+    !/[!@#$%^&*]/.test(password)
+  ) {
+    return res
+      .status(400)
+      .json(
+        new ApiResponse(
+          400,
+          {},
+          "Password must be at least 6 characters long and include an uppercase letter, a number, and a special character."
+        )
+      );
   }
 
   if (password !== confirmPassword) {
-    return res.status(400).json(new ApiResponse(400, {}, "Passwords do not match."));
+    return res
+      .status(400)
+      .json(new ApiResponse(400, {}, "Passwords do not match."));
   }
   try {
     const isExistingUser = await User.findOne({ email });
@@ -47,19 +67,19 @@ export const register = async (req, res) => {
 
     const otp = String(Math.floor(100000 + Math.random() * 900000));
 
-    const otpHash = await bcrypt.hash(otp, 10); 
-  
+    const otpHash = await bcrypt.hash(otp, 10);
+
     const user = new User({
       name,
       email,
       password: hashedPassword,
       phoneNumber, // ✅ Add phone number
-      verifyOtp:otpHash,
-      verifyOtpExpireAt:Date.now() + 2 * 60 * 1000
+      verifyOtp: otpHash,
+      verifyOtpExpireAt: Date.now() + 2 * 60 * 1000,
     });
 
     await user.save();
-    
+
 
     const mailOptions = {
       from: process.env.SENDER_EMAIL,
@@ -67,7 +87,7 @@ export const register = async (req, res) => {
       subject: "Account Verification OTP",
       text: `Your OTP is ${otp}. Verify your account using this OTP.`,
       html: verifyAccountEmail(otp),
-    }
+    };
 
     await transporter.sendMail(mailOptions);
 
@@ -112,12 +132,32 @@ export const login = async (req, res) => {
     const { access_token, refresh_token } =
       await generateAccessAndRefereshTokens(user.id);
 
+    const options = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Make sure it's secure in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      maxAge: 10 * 60 * 1000, // Set to match JWT expiry (10 minutes)
+    };
+
+    const refreshTokenOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Make sure it's secure in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      maxAge: 5 * 24 * 60 * 60 * 1000, // Set to match JWT expiry (10 minutes)
+    };
+
+    res
+      .status(201)
+      .cookie("access_token", access_token, options)
+      .cookie("refresh_token", refresh_token, refreshTokenOptions)
+      .json(new ApiResponse(200, {}, "User logged In Successfully"));
+
     return res
       .status(200)
       .json(
         new ApiResponse(
           200,
-          { access_token, refresh_token },
+          {},
           "User logged In Successfully"
         )
       );
@@ -145,7 +185,10 @@ export const logout = async (req, res) => {
 };
 
 export const refreshToken = async (req, res) => {
-  const { refresToken } = req.body;
+  const refresToken =
+      req.cookies?.refresh_token ||
+      req.header("Authorization")?.replace("Bearer ", "");
+ // const { refresToken } = req.body;
 
   if (!refresToken) {
     return res
