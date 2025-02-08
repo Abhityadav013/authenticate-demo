@@ -45,14 +45,21 @@ export const register = async (req, res) => {
     const salt = await bcrypt.genSalt(12); // Generate salt
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+
+    const otpHash = await bcrypt.hash(otp, 10); 
+  
     const user = new User({
       name,
       email,
       password: hashedPassword,
       phoneNumber, // ✅ Add phone number
+      verifyOtp:otpHash,
+      verifyOtpExpireAt:Date.now() + 2 * 60 * 1000
     });
 
     await user.save();
+    
 
     const mailOptions = {
       from: process.env.SENDER_EMAIL,
