@@ -27,8 +27,8 @@ export const register = async (req, res) => {
     return res.status(400).json(new ApiResponse(400, {}, "Invalid phone number."));
   }
 
-  if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*]/.test(password)) {
-    return res.status(400).json(new ApiResponse(400, {}, "Password must be at least 8 characters long and include an uppercase letter, a number, and a special character."));
+  if (password.length < 6 || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*]/.test(password)) {
+    return res.status(400).json(new ApiResponse(400, {}, "Password must be at least 6 characters long and include an uppercase letter, a number, and a special character."));
   }
 
   if (password !== confirmPassword) {
