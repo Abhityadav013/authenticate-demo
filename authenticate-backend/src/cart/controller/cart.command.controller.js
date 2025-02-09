@@ -8,29 +8,29 @@ export const addToCart = async (req, res) => {
     const userId = req.user ? req.user.id : null; // Extract userId if logged in
 
     // Find cart based on userId or deviceId
-    let cart = await Cart.findOne({
-      $or: [{ deviceId }, userId ? { userId } : {}],
-    });
 
+    let cartFilter = { $or: [{ deviceId }] };
+
+    let cart = await Cart.findOne(cartFilter);
     // 👉 If no body is provided, return the existing cart (filtered)
     if (!req.body.cart) {
       const filteredCartItems = cart
-        ? cart.cartItems.filter((item) => item.quantity > 0)
+        ? cart?.cartItems.filter((item) => item.quantity > 0)
         : [];
 
-      return res
-        .status(200)
-        .json(
-          new ApiResponse(
-            200,
-            {
-              cart: { ...cart?.toObject(), cartItems: filteredCartItems } || {
-                cartItems: [],
-              },
-            },
-            cart ? "Cart retrieved successfully." : "Cart is empty."
-          )
-        );
+      return res.status(200).json(
+        new ApiResponse(
+          200,
+          {
+            cart: cart
+              ? { ...cart, cartItems: filteredCartItems } || {
+                  cartItems: [],
+                }
+              : [],
+          },
+          cart ? "Cart retrieved successfully." : "Cart is empty."
+        )
+      );
     }
 
     // 👉 If body is provided, update the cart
