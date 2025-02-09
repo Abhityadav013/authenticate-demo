@@ -265,7 +265,7 @@ export const sendVerifyOtp = async (req, res) => {
 
 export const verifyEmail = async (req, res) => {
   const { otp } = req.body;
-  const token = req.header("Authorization")?.replace("Bearer ", "");
+  const token = req.cookies?.access_token;
   const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
   if (!decoded.id || !otp) {
