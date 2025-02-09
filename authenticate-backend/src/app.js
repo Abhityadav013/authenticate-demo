@@ -5,6 +5,8 @@ import swaggerJSDoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import authRouter from "./users/routes/auth.route.js";
 import path from "path";
+import sessionRouter from "./session/routes/session.routes.js";
+import cartRouter from "./cart/routes/cart.routes.js";
 
 const app = express();
 
@@ -18,9 +20,10 @@ const swaggerOptions = {
     },
     servers: [
       {
-       url: process.env.NODE_ENV === "production"
-          ? `https://authenticate-demo.vercel.app`
-          : `http://localhost:${process.env.PORT || 5000}`, // Local dev URL
+        url:
+          process.env.NODE_ENV === "production"
+            ? `https://authenticate-demo.vercel.app`
+            : `http://localhost:${process.env.PORT || 5000}`, // Local dev URL
       },
     ],
   },
@@ -70,11 +73,13 @@ app.use(
   cors({
     origin: ["https://testing.indiantadka.eu", "http://localhost:3000"],
     credentials: true, // Allows cookies to be sent and received
-    methods: ['GET', 'POST', 'PUT','DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
 app.use("/api/v1", authRouter);
+app.use("/api/v1", sessionRouter);
+app.use("/api/v1", cartRouter);
 
 export default app;

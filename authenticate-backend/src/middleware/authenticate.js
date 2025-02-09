@@ -75,21 +75,22 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
   }
 });
 
-const authenticateUser = async (req, res, next) => {
-  const access_token = req.cookies.access_token;
-
+export const authenticateUser = async (req, res, next) => {
+  const access_token = req.cookies?.access_token;
   if (!access_token) {
-    return res.status(401).json({ error: "Unauthorized" });
+    req.user = null; // No user, treat as guest
+    return next();
   }
 
   try {
-    const ticket = await client.verifyIdToken({
-      idToken: access_token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-    req.user = ticket.getPayload();
-    next();
+    const decodedToken = jwt.verify(access_token, process.env.ACCESS_TOKEN_SECRET);
+    const user = await User.findOne({ id: decodedToken.id }).select("-id -name");
+    req.user = user; // Attach user to request
+    res.cookie("_is_user_logged_in", "true", { httpOnly: true, secure: true, sameSite: "Strict" }); // Set cookie for logged-in state
   } catch (error) {
-    res.status(401).json({ error: "Invalid or expired token" });
+    req.user = null;
+    res.clearCookie("_is_user_logged_in"); // Clear logged-in cookie if invalid token
   }
+
+  next();
 };
