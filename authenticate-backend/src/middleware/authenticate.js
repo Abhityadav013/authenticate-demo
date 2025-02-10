@@ -84,9 +84,19 @@ export const authenticateUser = async (req, res, next) => {
 
   try {
     const decodedToken = jwt.verify(access_token, process.env.ACCESS_TOKEN_SECRET);
-    const user = await User.findOne({ id: decodedToken.id }).select("-id -name");
+    const user = await User.findOne({ id: decodedToken.id }).select("id name");
     req.user = user; // Attach user to request
-    res.cookie("_is_user_logged_in", "true", { httpOnly: true, secure: true, sameSite: "Strict" }); // Set cookie for logged-in state
+
+    const options = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Make sure it's secure in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // Set to match JWT expiry (10 minutes)
+    };
+
+    const userLoggedInOption = {...options};
+    delete userLoggedInOption.maxAge
+    res.cookie("_is_user_logged_in", "true", userLoggedInOption); 
   } catch (error) {
     req.user = null;
     res.clearCookie("_is_user_logged_in"); // Clear logged-in cookie if invalid token

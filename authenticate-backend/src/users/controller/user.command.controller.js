@@ -8,6 +8,8 @@ import transporter from "../../config/nodemailer.js";
 import moment from "moment/moment.js";
 import { OAuth2Client } from "google-auth-library";
 import { verifyAccountEmail } from "../../utils/emails/accountVerification.js";
+import UserSession from "../../session/models/session.model.js";
+import Cart from "../../cart/models/cart.models.js";
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const register = async (req, res) => {
@@ -110,6 +112,7 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
+  const deviceId = req.cookies?._device_id;
 
   if (!email || !password) {
     return res
@@ -145,10 +148,20 @@ export const login = async (req, res) => {
       maxAge: 5 * 24 * 60 * 60 * 1000, // Set to match JWT expiry (10 minutes)
     };
 
+    const userLoggedInOption = { ...options };
+    delete userLoggedInOption.maxAge;
+    delete userLoggedInOption.httpOnly;
+
+    const cart = await Cart.findOne({ deviceId: deviceId });
+    cart.userId = user.id;
+    await cart.save();
+
     return res
       .status(200)
       .cookie("access_token", access_token, options)
       .cookie("refresh_token", refresh_token, refreshTokenOptions)
+      .cookie("_guest_id", "", options)
+      .cookie("_is_user_logged_in", "true", userLoggedInOption)
       .json(new ApiResponse(200, {}, "User logged In Successfully"));
   } catch (err) {
     return res.status(500).json(new ApiResponse(500, {}, err.message));
@@ -157,16 +170,26 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
+    const deviceId = req.cookies?._device_id;
+    const userId = req.user.id;
     const options = {
       httpOnly: process.env.NODE_ENV === "production", // true in production
       secure: process.env.NODE_ENV === "production", // true in production
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // 'none' for cross-origin requests
     };
 
+    await Cart.deleteOne({ userId });
+    const session = await UserSession.findOne({ id: deviceId });
+
     return res
       .status(200)
       .clearCookie("access_token", options)
       .clearCookie("refresh_token", options)
+      .cookie("_guest_id", session.guestId, {
+        ...options,
+        maxAge: 2 * 24 * 60 * 60 * 1000,
+      })
+      .cookie("_is_user_logged_in", "false", options)
       .json(new ApiResponse(200, {}, "Logged out successfully"));
   } catch (err) {
     return res.status(500).json(new ApiResponse(500, {}, err.message));

@@ -9,7 +9,7 @@ import {
   verifyGoogleToken,
 } from "../controller/user.command.controller.js";
 import User from "../models/user.model.js";
-import { verifyJWT } from "../../middleware/authenticate.js";
+import { authenticateUser, verifyJWT } from "../../middleware/authenticate.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import passport from 'passport';
 const GoogleStrategy = (await import("passport-google-oauth20")).Strategy
@@ -92,7 +92,7 @@ authRouter.post("/login", login);
  *       200:
  *         description: User logged out successfully
  */
-authRouter.post("/logout", logout);
+authRouter.post("/logout",authenticateUser, logout);
 
 authRouter.get("/profile", verifyJWT, async (req, res) => {
   try {

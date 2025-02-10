@@ -7,6 +7,7 @@ export const sessionRegister = async (req, res) => {
 
   try {
     let deviceId = req.cookies?._device_id;
+    let isUserLoggedIn = req.cookies?._is_user_logged_in === "true";
 
     let session = new UserSession({
       latitude: lat || null,
@@ -34,10 +35,14 @@ export const sessionRegister = async (req, res) => {
       maxAge: 2 * 24 * 60 * 60 * 1000, // Set to match JWT expiry (10 minutes)
     };
 
+    const userLoggedInOption = {...options};
+    delete userLoggedInOption.maxAge
+
     res
       .status(200)
       .cookie("_device_id", session.id, options)
       .cookie("_guest_id", session.guestId, guestOptions)
+      .cookie("_is_user_logged_in", isUserLoggedIn, userLoggedInOption)
       .json(
         new ApiResponse(
           200,
