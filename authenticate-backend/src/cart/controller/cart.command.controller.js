@@ -10,23 +10,21 @@ export const addToCart = async (req, res) => {
     // Find cart based on userId or deviceId
 
     let cartFilter = { $or: [{ deviceId }] };
+    if (userId) {
+      cartFilter["or"].push({ userId });
+    }
 
-    let cart = await Cart.findOne(cartFilter);
-    // 👉 If no body is provided, return the existing cart (filtered)
+    let cart = await Cart.findOne({
+      ...cartFilter,
+      "cartItems.quantity": { $gt: 0 },
+    }).select("-_id")
     if (!req.body.cart) {
-      const filteredCartItems = cart
-        ? cart?.cartItems.filter((item) => item.quantity > 0)
-        : [];
 
       return res.status(200).json(
         new ApiResponse(
           200,
           {
-            cart: cart
-              ? { ...cart, cartItems: filteredCartItems } || {
-                  cartItems: [],
-                }
-              : [],
+            cart
           },
           cart ? "Cart retrieved successfully." : "Cart is empty."
         )
