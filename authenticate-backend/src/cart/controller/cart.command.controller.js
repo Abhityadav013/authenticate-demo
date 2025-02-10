@@ -11,7 +11,7 @@ export const addToCart = async (req, res) => {
 
     let cartFilter = { $or: [{ deviceId }] };
     if (userId) {
-      cartFilter["or"].push({ userId });
+      cartFilter["$or"].push({ userId });
     }
 
     let cart = await Cart.findOne({
