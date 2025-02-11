@@ -24,7 +24,7 @@ export const addToCart = async (req, res) => {
         new ApiResponse(
           200,
           {
-            cart
+            ...cart || {}
           },
           cart ? "Cart retrieved successfully." : "Cart is empty."
         )
