@@ -153,8 +153,11 @@ export const login = async (req, res) => {
     delete userLoggedInOption.httpOnly;
 
     const cart = await Cart.findOne({ deviceId: deviceId });
-    cart.userId = user.id;
-    await cart.save();
+    if (cart) {
+      cart.userId = user.id;
+      await cart.save();
+    }
+
 
     return res
       .status(200)
@@ -185,7 +188,7 @@ export const logout = async (req, res) => {
       .status(200)
       .clearCookie("access_token", options)
       .clearCookie("refresh_token", options)
-      .cookie("_guest_id", session.guestId, {
+      .cookie("_guest_id", session?.guestId, {
         ...options,
         maxAge: 2 * 24 * 60 * 60 * 1000,
       })
