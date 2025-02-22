@@ -11,8 +11,6 @@ import {
 import User from "../models/user.model.js";
 import { authenticateUser, verifyJWT } from "../../middleware/authenticate.js";
 import ApiResponse from "../../utils/ApiResponse.js";
-import passport from 'passport';
-const GoogleStrategy = (await import("passport-google-oauth20")).Strategy
 const authRouter = Router();
 
 /**

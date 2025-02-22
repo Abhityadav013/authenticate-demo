@@ -7,6 +7,7 @@ import authRouter from "./users/routes/auth.route.js";
 import path from "path";
 import sessionRouter from "./session/routes/session.routes.js";
 import cartRouter from "./cart/routes/cart.routes.js";
+import userAddressRouter from "./users/routes/userAddress.route.js";
 
 const app = express();
 
@@ -81,5 +82,6 @@ app.use(
 app.use("/api/v1", authRouter);
 app.use("/api/v1", sessionRouter);
 app.use("/api/v1", cartRouter);
+app.use("/api/v1", userAddressRouter)
 
 export default app;
