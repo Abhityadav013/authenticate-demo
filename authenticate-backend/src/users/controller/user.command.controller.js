@@ -198,6 +198,7 @@ export const login = async (req, res) => {
       .cookie("refresh_token", refresh_token, refreshTokenOptions)
       .cookie("_guest_id", "", options)
       .cookie("_is_user_logged_in", "true", userLoggedInOption)
+      .cookies("_user_id_",user.id,options)
       .json(new ApiResponse(200, {}, "User logged In Successfully"));
   } catch (err) {
     return res.status(500).json(new ApiResponse(500, {}, err.message));
@@ -455,6 +456,7 @@ export const googleLogin = async (req, res) => {
             maxAge: undefined,
             httpOnly: undefined,
           })
+          .cookies("_user_id_",existingUser.id,options)
           .json(new ApiResponse(200, {}, "User logged in successfully."));
       }
 
@@ -520,6 +522,7 @@ export const googleLogin = async (req, res) => {
         maxAge: undefined,
         httpOnly: undefined,
       })
+      .cookies("_user_id_",newUser.id,options)
       .json(
         new ApiResponse(201, {}, "User registered successfully with Google.")
       );
