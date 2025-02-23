@@ -456,30 +456,29 @@ export const googleLogin = async (req, res) => {
             maxAge: undefined,
             httpOnly: undefined,
           })
-          .cookies("_user_id_",existingUser.id,options)
           .json(new ApiResponse(200, {}, "User logged in successfully."));
       }
 
-      // User exists but hasn't linked Google account, update user record
-      existingUser.googleId = userId;
-      existingUser.avatarUrl = avatarUrl || "";
-      await existingUser.save();
+      // // User exists but hasn't linked Google account, update user record
+      // existingUser.googleId = userId;
+      // existingUser.avatarUrl = avatarUrl || "";
+      // await existingUser.save();
 
-      const { access_token } = await generateAccessAndRefereshTokens(
-        existingUser.id
-      );
-      const options = createCookieOptions(10 * 60 * 1000); // 10 min access token
+      // const { access_token } = await generateAccessAndRefereshTokens(
+      //   existingUser.id
+      // );
+      // const options = createCookieOptions(10 * 60 * 1000); // 10 min access token
 
-      return res
-        .status(200)
-        .cookie("access_token", access_token, options)
-        .json(
-          new ApiResponse(
-            200,
-            {},
-            "User successfully linked with Google and logged in."
-          )
-        );
+      // return res
+      //   .status(200)
+      //   .cookie("access_token", access_token, options)
+      //   .json(
+      //     new ApiResponse(
+      //       200,
+      //       {},
+      //       "User successfully linked with Google and logged in."
+      //     )
+      //   );
     }
 
     // User does not exist, register them
