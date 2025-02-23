@@ -94,6 +94,7 @@ authRouter.post("/logout",authenticateUser, logout);
 
 authRouter.get("/profile", verifyJWT, async (req, res) => {
   try {
+    let deviceId = req.cookies?._device_id;
     const user = await User.findOne({ id: req.user.id }).select(
       "name isAccountVerified -_id" // Include required fields, exclude _id
     );
@@ -101,8 +102,21 @@ authRouter.get("/profile", verifyJWT, async (req, res) => {
     if (!user) {
       return res.status(404).json(new ApiResponse(404, {}, "User not found"));
     }
+
+    
+    const options = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Make sure it's secure in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // Set to match JWT expiry (10 minutes)
+    };
+    const userLoggedInOption = { ...options };
+    delete userLoggedInOption.maxAge;
     return res
       .status(200)
+      .cookie("_device_id", deviceId, options)
+      .cookie("_guest_id", "", options)
+      .cookie("_is_user_logged_in", true, userLoggedInOption)
       .json(
         new ApiResponse(
           200,
