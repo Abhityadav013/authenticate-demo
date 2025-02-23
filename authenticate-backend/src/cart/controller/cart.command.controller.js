@@ -164,12 +164,55 @@ export const cartAddons = async (req, res) => {
       .cookie("_device_id", deviceId, options)
       .cookie("_guest_id", guestId, guestOptions)
       .cookie("_is_user_logged_in", isUserLoggedIn, userLoggedInOption)
+      .json(new ApiResponse(201, {}, "Cart updated successfully."));
+  } catch (error) {
+    console.error("Error handling cart:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const fetchCartAddons = async (req, res) => {
+  try {
+    let deviceId = req.cookies?._device_id;
+    let isUserLoggedIn = req.cookies?._is_user_logged_in === "true";
+    const userId = req.user ? req.user.id : null;
+    const guestId = req.tid ? req.tid : null;
+    if (guestId) {
+      const session = await UserSession.findOne({ guestId });
+      deviceId = session.id;
+    }
+
+    let cartFilter = { $or: [{ deviceId }] };
+    if (userId) {
+      cartFilter["$or"].push({ userId });
+    }
+
+    const cart = await Cart.findOne(cartFilter);
+    const options = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Make sure it's secure in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // Set to match JWT expiry (10 minutes)
+    };
+    const guestOptions = {
+      ...options,
+      maxAge: 2 * 24 * 60 * 60 * 1000, // Set to match JWT expiry (10 minutes)
+    };
+
+    const userLoggedInOption = { ...options };
+    delete userLoggedInOption.maxAge;
+
+    const cartDescription = cart.cartItems.map((item) => ({
+      itemId: item.itemId,
+      description: item.addons[0],
+    }));
+    return res
+      .status(201)
+      .cookie("_device_id", deviceId, options)
+      .cookie("_guest_id", guestId, guestOptions)
+      .cookie("_is_user_logged_in", isUserLoggedIn, userLoggedInOption)
       .json(
-        new ApiResponse(
-          201,
-          {  },
-          "Cart updated successfully."
-        )
+        new ApiResponse(201, { cartDescription }, "Cart updated successfully.")
       );
   } catch (error) {
     console.error("Error handling cart:", error);
