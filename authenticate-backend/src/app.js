@@ -75,7 +75,7 @@ app.use(
     origin: ["https://testing.indiantadka.eu", "http://localhost:3000","https://theindiantadka.vercel.app"],
     credentials: true, // Allows cookies to be sent and received
     methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization","tid"],
   })
 );
 

@@ -1,3 +1,4 @@
+import UserSession from "../../session/models/session.model.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import Cart from "../models/cart.models.js";
 
@@ -6,6 +7,25 @@ export const addToCart = async (req, res) => {
     let deviceId = req.cookies?._device_id;
     let isUserLoggedIn = req.cookies?._is_user_logged_in === "true";
     const userId = req.user ? req.user.id : null;
+    const guestId = req.tid ? req.tid : null;
+    if (guestId) {
+      const session = await UserSession.findOne({ guestId });
+      deviceId = session.id;
+    }
+
+    const options = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Make sure it's secure in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // Set to match JWT expiry (10 minutes)
+    };
+    const guestOptions = {
+      ...options,
+      maxAge: 2 * 24 * 60 * 60 * 1000, // Set to match JWT expiry (10 minutes)
+    };
+
+    const userLoggedInOption = { ...options };
+    delete userLoggedInOption.maxAge;
 
     let cartFilter = { $or: [{ deviceId }] };
     if (userId) {
@@ -16,6 +36,9 @@ export const addToCart = async (req, res) => {
     if (!req.body.cart) {
       return res
         .status(200)
+        .cookie("_device_id", deviceId, options)
+        .cookie("_guest_id", guestId, guestOptions)
+        .cookie("_is_user_logged_in", isUserLoggedIn, userLoggedInOption)
         .json(
           new ApiResponse(
             200,
@@ -26,11 +49,6 @@ export const addToCart = async (req, res) => {
     }
 
     const { cart: cartItems } = req.body;
-    if (!Array.isArray(cartItems) || cartItems.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "Cart items should be a non-empty array" });
-    }
 
     if (!cart) {
       await Cart.updateOne(
@@ -41,8 +59,9 @@ export const addToCart = async (req, res) => {
             userId: userId || undefined,
             cartItems: cartItems.filter((item) => item.quantity > 0),
           },
-        },{
-          upsert:true
+        },
+        {
+          upsert: true,
         }
       );
     } else {
@@ -78,19 +97,13 @@ export const addToCart = async (req, res) => {
       );
     }
 
-    res.cookie("_is_user_logged_in", isUserLoggedIn ? "true" : "false", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-    });
-
-    const filteredCartItems = cartItems.filter(
-      (item) => item.quantity > 0
-    );
-
+    const filteredCartItems = cartItems.filter((item) => item.quantity > 0);
 
     return res
       .status(201)
+      .cookie("_device_id", deviceId, options)
+      .cookie("_guest_id", guestId, guestOptions)
+      .cookie("_is_user_logged_in", isUserLoggedIn, userLoggedInOption)
       .json(
         new ApiResponse(
           201,

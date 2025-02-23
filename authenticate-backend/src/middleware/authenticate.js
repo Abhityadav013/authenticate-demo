@@ -77,8 +77,10 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
 
 export const authenticateUser = async (req, res, next) => {
   const access_token = req.cookies?.access_token;
+  const tId = req.headers['tid'] || ''
   if (!access_token) {
     req.user = null; // No user, treat as guest
+    req.tid = tId;
     return next();
   }
 
@@ -86,6 +88,7 @@ export const authenticateUser = async (req, res, next) => {
     const decodedToken = jwt.verify(access_token, process.env.ACCESS_TOKEN_SECRET);
     const user = await User.findOne({ id: decodedToken.id }).select("id name");
     req.user = user; // Attach user to request
+    req.tid = tId;
 
     const options = {
       httpOnly: true,

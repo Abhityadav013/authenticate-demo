@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticateUser } from "../../middleware/authenticate.js";
-import { registerAddress } from "../controller/userAddress.command.controller.js";
+import { fetchAddress, registerAddress } from "../controller/userAddress.command.controller.js";
 
 const userAddressRouter = Router();
 
@@ -100,5 +100,6 @@ const userAddressRouter = Router();
  *                   example: "Internal Server Error"
  */
 userAddressRouter.post("/address", authenticateUser, registerAddress);
+userAddressRouter.get("/address", authenticateUser, fetchAddress);
 
 export default userAddressRouter;
