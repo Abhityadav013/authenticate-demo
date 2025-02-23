@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  googleLogin,
   login,
   logout,
   refreshToken,
@@ -135,7 +136,7 @@ authRouter.post("/send-verify-otp", verifyJWT, sendVerifyOtp);
 
 authRouter.post("/verify-account", verifyJWT, verifyEmail);
 
-authRouter.post("/auth/google",verifyGoogleToken);
+authRouter.post("/auth/google",googleLogin);
 
 
 export default authRouter;

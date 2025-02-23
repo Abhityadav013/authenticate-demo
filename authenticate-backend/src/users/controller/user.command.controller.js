@@ -14,6 +14,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const register = async (req, res) => {
   const { name, email, password, phoneNumber, confirmPassword } = req.body;
+  const errors = [];
 
   if (!name || !email || !password || !phoneNumber || !confirmPassword) {
     return res
@@ -21,40 +22,35 @@ export const register = async (req, res) => {
       .json(new ApiResponse(400, {}, "All fields are required."));
   }
 
-  if (!validator.isEmail(email)) {
-    return res
-      .status(400)
-      .json(new ApiResponse(400, {}, "Invalid email format."));
+  if (email && !validator.isEmail(email)) {
+    errors.push({ key: "email", message: "Invalid email format." });
   }
 
-  if (!validator.isMobilePhone(phoneNumber, "any")) {
-    // "any" allows all country formats
-    return res
-      .status(400)
-      .json(new ApiResponse(400, {}, "Invalid phone number."));
+  if (phoneNumber && !validator.isMobilePhone(phoneNumber, "de-DE")) {
+    errors.push({ key: "phoneNumber", message: "Invalid phone number." });
   }
 
   if (
-    password.length < 6 ||
-    !/[A-Z]/.test(password) ||
-    !/[0-9]/.test(password) ||
-    !/[!@#$%^&*]/.test(password)
+    password &&
+    (password.length < 6 ||
+      !/[A-Z]/.test(password) ||
+      !/[0-9]/.test(password) ||
+      !/[!@#$%^&*]/.test(password))
   ) {
-    return res
-      .status(400)
-      .json(
-        new ApiResponse(
-          400,
-          {},
-          "Password must be at least 6 characters long and include an uppercase letter, a number, and a special character."
-        )
-      );
+    errors.push({
+      key: "password",
+      message:
+        "Password must be at least 6 characters long and include an uppercase letter, a number, and a special character.",
+    });
   }
 
-  if (password !== confirmPassword) {
+  if (password && confirmPassword && password !== confirmPassword) {
+    errors.push({ key: "confirmPassword", message: "Passwords do not match." });
+  }
+  if (errors.length > 0) {
     return res
       .status(400)
-      .json(new ApiResponse(400, {}, "Passwords do not match."));
+      .json(new ApiResponse(400, errors, "Validation failed."));
   }
   try {
     const isExistingUser = await User.findOne({ email });
@@ -92,7 +88,8 @@ export const register = async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    const { access_token } = await generateAccessAndRefereshTokens(user.id);
+    const { access_token, refresh_token } =
+      await generateAccessAndRefereshTokens(user.id);
 
     const options = {
       httpOnly: true,
@@ -101,10 +98,24 @@ export const register = async (req, res) => {
       maxAge: 10 * 60 * 1000, // Set to match JWT expiry (10 minutes)
     };
 
-    res
+    const refreshTokenOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Make sure it's secure in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      maxAge: 5 * 24 * 60 * 60 * 1000, // Set to match JWT expiry (10 minutes)
+    };
+
+    const userLoggedInOption = { ...options };
+    delete userLoggedInOption.maxAge;
+    delete userLoggedInOption.httpOnly;
+
+    return res
       .status(201)
       .cookie("access_token", access_token, options)
-      .json(new ApiResponse(200, {}, "User Registered Successfully"));
+      .cookie("refresh_token", refresh_token, refreshTokenOptions)
+      .cookie("_guest_id", "", options)
+      .cookie("_is_user_logged_in", "true", userLoggedInOption)
+      .json(new ApiResponse(201, {}, "User Registered Successfully"));
   } catch (err) {
     res.status(500).json(new ApiResponse(500, {}, err.message));
   }
@@ -114,21 +125,44 @@ export const login = async (req, res) => {
   const { email, password } = req.body;
   const deviceId = req.cookies?._device_id;
 
+  const errors = [];
+
   if (!email || !password) {
-    return res
-      .status(400)
-      .json(new ApiResponse(400, {}, "Email and Password are required"));
+    const err = [
+      {
+        key: "email",
+        message: "Please provide email to login",
+      },
+      {
+        key: "password",
+        message: "Please provide password to login",
+      },
+    ];
+    errors = [...errors, ...err];
   }
 
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json(new ApiResponse(401, {}, "Invalid email"));
+      errors.push({
+        key: "email",
+        message: "User with this email doesn't exits.",
+      });
+    }
+    if (user) {
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        errors.push({
+          key: "password",
+          message: "Password is invalid. please provide correct password.",
+        });
+      }
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json(new ApiResponse(401, {}, "Invalid password"));
+    if (errors.length > 0) {
+      return res
+        .status(400)
+        .json(new ApiResponse(400, errors, "Validation failed."));
     }
 
     const { access_token, refresh_token } =
@@ -157,7 +191,6 @@ export const login = async (req, res) => {
       cart.userId = user.id;
       await cart.save();
     }
-
 
     return res
       .status(200)
@@ -383,3 +416,122 @@ async function verifyToken(token) {
   const payload = ticket.getPayload();
   return payload; // Contains user info like email, name, picture, etc.
 }
+
+export const googleLogin = async (req, res) => {
+  try {
+    const { credential } = req.body;
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID, // Replace with your Google client ID
+    });
+
+    const payload = ticket.getPayload();
+    const userId = payload["sub"]; // Google user ID
+    const email = payload["email"];
+    const avatarUrl = payload["picture"]; // Optional avatar URL
+    const name = payload["name"] || "Google User"; // Fallback name if not available
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ googleId: userId });
+
+    // If user exists, log in or link Google account
+    if (existingUser) {
+      // If Google ID is already linked, log the user in
+      if (existingUser.googleId) {
+        const { access_token, refresh_token } =
+          await generateAccessAndRefereshTokens(existingUser.id);
+        const options = createCookieOptions(10 * 60 * 1000); // 10 min access token
+        const refreshTokenOptions = createCookieOptions(
+          5 * 24 * 60 * 60 * 1000
+        ); // 5 days refresh token
+
+        return res
+          .status(200)
+          .cookie("access_token", access_token, options)
+          .cookie("refresh_token", refresh_token, refreshTokenOptions)
+          .cookie("_guest_id", "", options)
+          .cookie("_is_user_logged_in", "true", {
+            ...options,
+            maxAge: undefined,
+            httpOnly: undefined,
+          })
+          .json(new ApiResponse(200, {}, "User logged in successfully."));
+      }
+
+      // User exists but hasn't linked Google account, update user record
+      existingUser.googleId = userId;
+      existingUser.avatarUrl = avatarUrl || "";
+      await existingUser.save();
+
+      const { access_token } = await generateAccessAndRefereshTokens(
+        existingUser.id
+      );
+      const options = createCookieOptions(10 * 60 * 1000); // 10 min access token
+
+      return res
+        .status(200)
+        .cookie("access_token", access_token, options)
+        .json(
+          new ApiResponse(
+            200,
+            {},
+            "User successfully linked with Google and logged in."
+          )
+        );
+    }
+
+    // User does not exist, register them
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otpHash = await bcrypt.hash(otp, 10);
+
+    const newUser = new User({
+      name,
+      email,
+      googleId: userId,
+      avatarUrl: avatarUrl || "",
+      verifyOtp: otpHash,
+      verifyOtpExpireAt: Date.now() + 2 * 60 * 1000,
+    });
+
+    await newUser.save();
+
+    const mailOptions = {
+      from: process.env.SENDER_EMAIL,
+      to: newUser.email,
+      subject: "Account Verification OTP",
+      text: `Your OTP is ${otp}. Verify your account using this OTP.`,
+      html: verifyAccountEmail(otp), // Replace with actual verification email template
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    const { access_token, refresh_token } =
+      await generateAccessAndRefereshTokens(newUser.id);
+    const options = createCookieOptions(10 * 60 * 1000); // 10 min access token
+    const refreshTokenOptions = createCookieOptions(5 * 24 * 60 * 60 * 1000); // 5 days refresh token
+
+    return res
+      .status(201)
+      .cookie("access_token", access_token, options)
+      .cookie("refresh_token", refresh_token, refreshTokenOptions)
+      .cookie("_guest_id", "", options)
+      .cookie("_is_user_logged_in", "true", {
+        ...options,
+        maxAge: undefined,
+        httpOnly: undefined,
+      })
+      .json(
+        new ApiResponse(201, {}, "User registered successfully with Google.")
+      );
+  } catch (err) {
+    res.status(500).json(new ApiResponse(500, {}, err.message));
+  }
+};
+
+// Utility function to generate cookie options
+const createCookieOptions = (maxAge) => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production", // Ensure it's secure in production
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+  maxAge,
+});
