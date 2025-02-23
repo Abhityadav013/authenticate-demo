@@ -8,9 +8,9 @@ export const addToCart = async (req, res) => {
     let isUserLoggedIn = req.cookies?._is_user_logged_in === "true";
     const userId = req.user ? req.user.id : null;
     const guestId = req.tid ? req.tid : null;
-    if (guestId) {
+    if (!isUserLoggedIn && guestId) {
       const session = await UserSession.findOne({ guestId });
-      deviceId = session.id;
+      deviceId = session?.id;
     }
 
     const options = {
