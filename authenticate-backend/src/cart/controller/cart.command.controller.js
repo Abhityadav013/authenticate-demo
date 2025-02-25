@@ -69,6 +69,7 @@ export const addToCart = async (req, res) => {
         const cartIndex = cart.cartItems.findIndex(
           (item) => item.itemId === itemId
         );
+
         if (cartIndex !== -1) {
           if (quantity > 0) {
             // ✅ Update existing item quantity
@@ -77,13 +78,9 @@ export const addToCart = async (req, res) => {
             // ❌ Remove item if quantity is 0
             cart.cartItems.splice(cartIndex, 1);
           }
-        } else {
-          // Add a new item if quantity > 0
-          cart.cartItems.push({
-            itemId,
-            itemName,
-            quantity,
-          });
+        } else if (quantity > 0) {
+          // ✅ Add new item if quantity is greater than 0
+          cart.cartItems.push({ itemId, itemName, quantity });
         }
       });
 
@@ -91,13 +88,13 @@ export const addToCart = async (req, res) => {
         { deviceId }, // Find document by deviceId
         {
           $set: {
-            cartItems: cart.cartItems.filter((item) => item.quantity > 0),
+            cartItems: cart.cartItems,
           },
         } // Remove items with quantity 0
       );
     }
 
-    const filteredCartItems = cartItems.filter((item) => item.quantity > 0);
+    const filteredCartItems = cart.cartItems.filter((item) => item.quantity > 0);
 
     return res
       .status(201)

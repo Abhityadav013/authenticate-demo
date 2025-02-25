@@ -420,6 +420,7 @@ async function verifyToken(token) {
 
 export const googleLogin = async (req, res) => {
   try {
+    const deviceId = req.cookies?._device_id;
     const { credential } = req.body;
     const ticket = await client.verifyIdToken({
       idToken: credential,
@@ -439,6 +440,12 @@ export const googleLogin = async (req, res) => {
     if (existingUser) {
       // If Google ID is already linked, log the user in
       if (existingUser.googleId) {
+
+        const cart = await Cart.findOne({ deviceId: deviceId });
+        if (cart) {
+          cart.userId = existingUser.id;
+          await cart.save();
+        }
         const { access_token, refresh_token } =
           await generateAccessAndRefereshTokens(existingUser.id);
         const options = createCookieOptions(10 * 60 * 1000); // 10 min access token
@@ -458,27 +465,6 @@ export const googleLogin = async (req, res) => {
           })
           .json(new ApiResponse(200, {}, "User logged in successfully."));
       }
-
-      // // User exists but hasn't linked Google account, update user record
-      // existingUser.googleId = userId;
-      // existingUser.avatarUrl = avatarUrl || "";
-      // await existingUser.save();
-
-      // const { access_token } = await generateAccessAndRefereshTokens(
-      //   existingUser.id
-      // );
-      // const options = createCookieOptions(10 * 60 * 1000); // 10 min access token
-
-      // return res
-      //   .status(200)
-      //   .cookie("access_token", access_token, options)
-      //   .json(
-      //     new ApiResponse(
-      //       200,
-      //       {},
-      //       "User successfully linked with Google and logged in."
-      //     )
-      //   );
     }
 
     // User does not exist, register them
@@ -495,6 +481,12 @@ export const googleLogin = async (req, res) => {
     });
 
     await newUser.save();
+
+    const cart = await Cart.findOne({ deviceId: deviceId });
+    if (cart) {
+      cart.userId = newUser.id;
+      await cart.save();
+    }
 
     const mailOptions = {
       from: process.env.SENDER_EMAIL,
