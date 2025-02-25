@@ -198,7 +198,7 @@ export const login = async (req, res) => {
       .cookie("refresh_token", refresh_token, refreshTokenOptions)
       .cookie("_guest_id", "", options)
       .cookie("_is_user_logged_in", "true", userLoggedInOption)
-      .cookies("_user_id_",user.id,options)
+      .cookie("_user_id_",user.id,options)
       .json(new ApiResponse(200, {}, "User logged In Successfully"));
   } catch (err) {
     return res.status(500).json(new ApiResponse(500, {}, err.message));
