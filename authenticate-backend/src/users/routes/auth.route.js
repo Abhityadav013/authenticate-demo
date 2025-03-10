@@ -77,7 +77,7 @@ authRouter.post("/register", register);
  *       401:
  *         description: Invalid email or password
  */
-authRouter.post("/login", login);
+authRouter.post("/login",authenticateUser, login);
 
 /**
  * @swagger

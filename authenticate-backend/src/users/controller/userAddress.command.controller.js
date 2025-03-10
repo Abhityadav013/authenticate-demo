@@ -51,6 +51,8 @@ export const registerAddress = async(req,res) =>{
 export const fetchAddress = async (req, res) => {
   try {
     const userId = req.user ? req.user.id : null;
+    console.log('userId>>>>',userId)
+
 
     if (!userId) {
       return res

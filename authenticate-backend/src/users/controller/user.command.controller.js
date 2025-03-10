@@ -214,7 +214,7 @@ export const logout = async (req, res) => {
       secure: process.env.NODE_ENV === "production", // true in production
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // 'none' for cross-origin requests
     };
-
+    console.log('userId>>>>>',userId)
     await Cart.deleteOne({ userId });
     const session = await UserSession.findOne({ id: deviceId });
 
