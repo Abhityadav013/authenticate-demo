@@ -11,6 +11,7 @@ import { verifyAccountEmail } from "../../utils/emails/accountVerification.js";
 import UserSession from "../../session/models/session.model.js";
 import Cart from "../../cart/models/cart.models.js";
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+import { v4 as uuidv4 } from "uuid";
 
 export const register = async (req, res) => {
   const { name, email, password, phoneNumber, confirmPassword } = req.body;
@@ -198,7 +199,7 @@ export const login = async (req, res) => {
       .cookie("refresh_token", refresh_token, refreshTokenOptions)
       .cookie("_guest_id", "", options)
       .cookie("_is_user_logged_in", "true", userLoggedInOption)
-      .cookie("_user_id_",user.id,options)
+      .cookie("_user_id_", user.id, options)
       .json(new ApiResponse(200, {}, "User logged In Successfully"));
   } catch (err) {
     return res.status(500).json(new ApiResponse(500, {}, err.message));
@@ -216,6 +217,9 @@ export const logout = async (req, res) => {
     };
     await Cart.deleteOne({ userId });
     const session = await UserSession.findOne({ id: deviceId });
+    const guestId = uuidv4();
+    session.guestId = guestId;
+    await session.save()
 
     return res
       .status(200)
@@ -230,7 +234,17 @@ export const logout = async (req, res) => {
         maxAge: 2 * 24 * 60 * 60 * 1000,
       })
       .cookie("_is_user_logged_in", "false", options)
-      .json(new ApiResponse(200, {}, "Logged out successfully"));
+      .json(
+        new ApiResponse(
+          200,
+          {
+            deviceId: session.id,
+            tid: session.guestId,
+            statusMessage: `Session logout`,
+          },
+          "Logged out successfully"
+        )
+      );
   } catch (err) {
     return res.status(500).json(new ApiResponse(500, {}, err.message));
   }
@@ -443,7 +457,6 @@ export const googleLogin = async (req, res) => {
     if (existingUser) {
       // If Google ID is already linked, log the user in
       if (existingUser.googleId) {
-
         const cart = await Cart.findOne({ deviceId: deviceId });
         if (cart) {
           cart.userId = existingUser.id;
@@ -516,7 +529,7 @@ export const googleLogin = async (req, res) => {
         maxAge: undefined,
         httpOnly: undefined,
       })
-      .cookie("_user_id_",newUser.id,options)
+      .cookie("_user_id_", newUser.id, options)
       .json(
         new ApiResponse(201, {}, "User registered successfully with Google.")
       );
