@@ -13,15 +13,15 @@ export const sessionRegister = async (req, res) => {
       latitude: lat || null,
       longitude: lng || null,
     });
-
-    if (!deviceId) {
+   
+    if (!deviceId || deviceId ==='undefined') {
       // If no deviceId in cookies, create a new guest session
       const guestId = uuidv4();
       session.guestId = guestId; // Set the guest ID
       await session.save(); // Save session to the database
     } else {
       // If deviceId exists, maybe fetch the session from the DB or use existing session
-      session = await UserSession.findOne({ id: deviceId }) || session;
+      session = (await UserSession.findOne({ id: deviceId })) || session;
     }
 
     const options = {
@@ -35,8 +35,8 @@ export const sessionRegister = async (req, res) => {
       maxAge: 2 * 24 * 60 * 60 * 1000, // Set to match JWT expiry (10 minutes)
     };
 
-    const userLoggedInOption = {...options};
-    delete userLoggedInOption.maxAge
+    const userLoggedInOption = { ...options };
+    delete userLoggedInOption.maxAge;
 
     res
       .status(200)

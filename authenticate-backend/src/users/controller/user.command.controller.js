@@ -214,7 +214,6 @@ export const logout = async (req, res) => {
       secure: process.env.NODE_ENV === "production", // true in production
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // 'none' for cross-origin requests
     };
-    console.log('userId>>>>>',userId)
     await Cart.deleteOne({ userId });
     const session = await UserSession.findOne({ id: deviceId });
 
@@ -513,7 +512,7 @@ export const googleLogin = async (req, res) => {
         maxAge: undefined,
         httpOnly: undefined,
       })
-      .cookies("_user_id_",newUser.id,options)
+      .cookie("_user_id_",newUser.id,options)
       .json(
         new ApiResponse(201, {}, "User registered successfully with Google.")
       );
