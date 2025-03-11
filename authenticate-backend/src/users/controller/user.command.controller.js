@@ -208,7 +208,7 @@ export const login = async (req, res) => {
 export const logout = async (req, res) => {
   try {
     const deviceId = req.cookies?._device_id;
-    const userId = req.user.id;
+    const userId = req.cookies?._user_id_;
     const options = {
       httpOnly: process.env.NODE_ENV === "production", // true in production
       secure: process.env.NODE_ENV === "production", // true in production
@@ -221,6 +221,10 @@ export const logout = async (req, res) => {
       .status(200)
       .clearCookie("access_token", options)
       .clearCookie("refresh_token", options)
+      .cookie("_device_id", session?.id, {
+        ...options,
+        maxAge: 30 * 24 * 60 * 60 * 1000, //
+      })
       .cookie("_guest_id", session?.guestId, {
         ...options,
         maxAge: 2 * 24 * 60 * 60 * 1000,

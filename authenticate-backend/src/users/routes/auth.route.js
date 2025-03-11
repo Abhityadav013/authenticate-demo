@@ -91,7 +91,7 @@ authRouter.post("/login",authenticateUser, login);
  *       200:
  *         description: User logged out successfully
  */
-authRouter.post("/logout",authenticateUser, logout);
+authRouter.post("/logout", logout);
 
 authRouter.get("/profile", verifyJWT, async (req, res) => {
   try {

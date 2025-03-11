@@ -199,7 +199,7 @@ export const fetchCartAddons = async (req, res) => {
     const userLoggedInOption = { ...options };
     delete userLoggedInOption.maxAge;
 
-    const cartDescription = cart.cartItems.map((item) => ({
+    const cartDescription = cart?.cartItems?.map((item) => ({
       itemId: item.itemId,
       description: item.addons[0],
     }));
