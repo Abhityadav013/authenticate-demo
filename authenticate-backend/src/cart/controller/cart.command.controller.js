@@ -94,7 +94,7 @@ export const addToCart = async (req, res) => {
       );
     }
 
-    const filteredCartItems = cart.cartItems.filter((item) => item.quantity > 0);
+    const filteredCartItems = cart?.cartItems.filter((item) => item.quantity > 0);
 
     return res
       .status(201)
