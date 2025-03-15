@@ -5,8 +5,10 @@ import UserAddress from "../models/userAddress.model.js";
 
 export const registerAddress = async(req,res) =>{
     try{
-        let isUserLoggedIn = req.cookies?._is_user_logged_in === "true";
-        const userId = req.user ? req.user.id : null;
+        // let isUserLoggedIn = req.cookies?._is_user_logged_in === "true";
+       // const userId = req.user ? req.user.id : null;
+       // const guestId = req.tid ? req.tid : null;
+        const userId = req.ssid ? req.ssid : null;
 
         const {
             street,
@@ -17,11 +19,11 @@ export const registerAddress = async(req,res) =>{
             addressType
           } = req.body.address;
 
-        if(!isUserLoggedIn && !userId){
-            return res
-            .status(400)
-            .json(new ApiResponse(400, {}, "Please logged in for adding address"));
-        }
+        // if(!isUserLoggedIn && !userId){
+        //     return res
+        //     .status(400)
+        //     .json(new ApiResponse(400, {}, "Please logged in for adding address"));
+        // }
 
         if (!street && !flatNumber && !buildingNumber && !pincode) {
             return res
@@ -35,7 +37,8 @@ export const registerAddress = async(req,res) =>{
             buildingNumber,
             displayAddress,
             pincode,
-            userId,addressType
+            userId,
+            addressType
           });
 
           await address.save()
@@ -50,14 +53,16 @@ export const registerAddress = async(req,res) =>{
 
 export const fetchAddress = async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : null;
+    //const userId = req.user ? req.user.id : null;
+
+    const userId = req.ssid ? req.ssid : null;
 
 
-    if (!userId) {
-      return res
-        .status(400)
-        .json(new ApiResponse(400, {}, "Please log in to view addresses"));
-    }
+    // if (!userId) {
+    //   return res
+    //     .status(400)
+    //     .json(new ApiResponse(400, {}, "Please log in to view addresses"));
+    // }
 
     const addresses = await UserAddress.find({ userId }).select('-userId -_id');
     return res

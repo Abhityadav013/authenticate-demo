@@ -79,6 +79,8 @@ export const authenticateUser = async (req, res, next) => {
   const access_token = req.cookies?.access_token;
   const tId = req.headers['tid'] || ''
   const ssId = req.headers['ssid'] || ''
+
+
   if (!access_token) {
     req.user = null; // No user, treat as guest
     req.tid = tId;
