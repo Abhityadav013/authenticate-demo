@@ -32,7 +32,7 @@ export const addToCart = async (req, res) => {
       cartFilter["$or"].push({ userId });
     }
 
-    let cart = await Cart.findOne(cartFilter).select("-cartItems.addons -_id");
+    let cart = await Cart.findOne(cartFilter).select("-cartItems.addons");
     if (!req.body.cart) {
       return res
         .status(200)
@@ -49,65 +49,39 @@ export const addToCart = async (req, res) => {
     }
 
     const { cart: cartItems } = req.body;
-
     if (!cart) {
-      await Cart.updateOne(
-        { deviceId }, // Find document by deviceId
-        {
-          $set: {
-            deviceId,
-            userId: userId || undefined,
-            cartItems: cartItems.filter((item) => item.quantity > 0),
-          },
-        },
-        {
-          upsert: true,
-        }
-      );
-    } else {
-      cartItems.forEach(({ itemId, itemName, quantity }) => {
-        const cartIndex = cart.cartItems.findIndex(
-          (item) => item.itemId === itemId
-        );
-
-        if (cartIndex !== -1) {
-          if (quantity > 0) {
-            // ✅ Update existing item quantity
-            cart.cartItems[cartIndex].quantity = quantity;
-          } else {
-            // ❌ Remove item if quantity is 0
-            cart.cartItems.splice(cartIndex, 1);
-          }
-        } else if (quantity > 0) {
-          // ✅ Add new item if quantity is greater than 0
-          cart.cartItems.push({ itemId, itemName, quantity });
-        }
+      cart = new Cart({
+        deviceId,
+        userId: userId || undefined,
+        cartItems: cartItems.filter((item) => item.quantity > 0),
       });
-
-      await Cart.updateOne(
-        { deviceId }, // Find document by deviceId
-        {
-          $set: {
-            cartItems: cart.cartItems,
-          },
-        } // Remove items with quantity 0
-      );
+    } else {
+      const isItemCompletRemove =
+        cart.cartItems.length !== cartItems.length &&
+        cart.length > cartItems.length;
+      const isNewItemAdd = cart.length < cartItems.length;
+      if (isItemCompletRemove) {
+        const updatItem = cart.cartItems.find(
+          (item) => !cartItems.includes(item)
+        );
+        cart.cartItems.filter((item) => item.itemId !== updatItem.itemId);
+      } else if (isNewItemAdd) {
+        cart.cartItems.push({ itemId, itemName, quantity });
+      } else {
+        cart.cartItems = cartItems;
+      }
     }
-
-    const filteredCartItems = cart?.cartItems.filter((item) => item.quantity > 0);
-
+    await cart.save();
+    console.log("cart<<<<<<<<<<<", cart);
+    if (cart.cartItems.length === 0) {
+      await cart.deleteOne({ deviceId });
+    }
     return res
       .status(201)
       .cookie("_device_id", deviceId, options)
       .cookie("_guest_id", guestId, guestOptions)
       .cookie("_is_user_logged_in", isUserLoggedIn, userLoggedInOption)
-      .json(
-        new ApiResponse(
-          201,
-          { cart: { ...cart, cartItems: filteredCartItems } },
-          "Cart updated successfully."
-        )
-      );
+      .json(new ApiResponse(201, { cart }, "Cart updated successfully."));
   } catch (error) {
     console.error("Error handling cart:", error);
     res.status(500).json({ message: "Internal server error" });
