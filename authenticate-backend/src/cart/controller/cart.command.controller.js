@@ -33,6 +33,17 @@ export const addToCart = async (req, res) => {
     }
 
     let cart = await Cart.findOne(cartFilter).select("-cartItems.addons");
+    const { cart: cartItems ,isCartEmpty} = req.body;
+    if(isCartEmpty){
+      await cart.deleteOne({ deviceId });
+      return res
+      .status(201)
+      .cookie("_device_id", deviceId, options)
+      .cookie("_guest_id", guestId, guestOptions)
+      .cookie("_is_user_logged_in", isUserLoggedIn, userLoggedInOption)
+      .json(new ApiResponse(200, { cart }, "Cart updated successfully."));
+    }
+
     if (!req.body.cart) {
       return res
         .status(200)
@@ -48,7 +59,7 @@ export const addToCart = async (req, res) => {
         );
     }
 
-    const { cart: cartItems } = req.body;
+
     if (!cart) {
       cart = new Cart({
         deviceId,
@@ -72,7 +83,6 @@ export const addToCart = async (req, res) => {
       }
     }
     await cart.save();
-    console.log("cart<<<<<<<<<<<", cart);
     if (cart.cartItems.length === 0) {
       await cart.deleteOne({ deviceId });
     }
