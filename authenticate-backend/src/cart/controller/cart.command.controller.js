@@ -8,7 +8,7 @@ export const addToCart = async (req, res) => {
     let isUserLoggedIn = req.cookies?._is_user_logged_in === "true";
     const userId = req.user ? req.user.id : null;
     const guestId = req.tid ? req.tid : null;
-    if (!isUserLoggedIn && guestId) {
+    if (!deviceId && guestId) {
       const session = await UserSession.findOne({ guestId });
       deviceId = session?.id;
     }
@@ -158,7 +158,7 @@ export const fetchCartAddons = async (req, res) => {
     let isUserLoggedIn = req.cookies?._is_user_logged_in === "true";
     const userId = req.user ? req.user.id : null;
     const guestId = req.tid ? req.tid : null;
-    if (guestId) {
+    if (!deviceId && guestId) {
       const session = await UserSession.findOne({ guestId });
       deviceId = session.id;
     }
